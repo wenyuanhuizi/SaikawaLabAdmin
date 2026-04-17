@@ -2,7 +2,7 @@ const BASE = "https://api1-dot-saikawalab-427516.uc.r.appspot.com/api/v1";
 
 export async function getPresignedUrl(file: File): Promise<string> {
   const res = await fetch(
-    `${BASE}/generate-presigned-url-for-posts?imageKey=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`
+    `${BASE}/generate-presigned-url-for-posts?imageKey=${file.name}&contentType=${file.type}`
   );
   if (!res.ok) throw new Error(`Failed to get presigned URL for ${file.name}: ${res.statusText}`);
   const { presignedUrl } = await res.json();
