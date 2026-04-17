@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { getBugForms, getLatestAq, getOthersInterest, getStudentInterest } from "../api";
+import {
+  getBugForms, getLatestAq, getOthersInterest, getStudentInterest,
+  deleteBugForm, deleteEnvReport, deleteOthersInterest, deleteStudentInterest,
+} from "../api";
 import "./ViewForms.css";
 
 const CLOUD_FRONT_URL = "https://dwtzamkwegvv2.cloudfront.net/";
@@ -21,6 +24,13 @@ const FETCHERS: Record<Tab, () => Promise<unknown[]>> = {
   env: getLatestAq,
 };
 
+const DELETERS: Record<Tab, (id: string) => Promise<void>> = {
+  student: deleteStudentInterest,
+  others: deleteOthersInterest,
+  bug: deleteBugForm,
+  env: deleteEnvReport,
+};
+
 export default function ViewForms() {
   const [tab, setTab] = useState<Tab>("student");
   const [states, setStates] = useState<Record<Tab, FetchState>>({
@@ -37,6 +47,24 @@ export default function ViewForms() {
       setStates((prev) => ({
         ...prev,
         [t]: { data: null, loading: false, error: err instanceof Error ? err.message : "Failed to fetch" },
+      }));
+    }
+  }
+
+  async function handleDelete(t: Tab, id: string) {
+    try {
+      await DELETERS[t](id);
+      setStates((prev) => ({
+        ...prev,
+        [t]: {
+          ...prev[t],
+          data: prev[t].data?.filter((item) => (item._id as string) !== id) ?? null,
+        },
+      }));
+    } catch (err) {
+      setStates((prev) => ({
+        ...prev,
+        [t]: { ...prev[t], error: err instanceof Error ? err.message : "Delete failed" },
       }));
     }
   }
@@ -98,10 +126,11 @@ export default function ViewForms() {
           <div className="form-list">
             {current.data.map((entry, i) => (
               <FormCard
-                key={i}
+                key={(entry._id as string) ?? i}
                 index={i}
                 data={entry}
                 showImages={tab === "env"}
+                onDelete={() => handleDelete(tab, entry._id as string)}
                 onOpenLightbox={(images, index) => setLightbox({ images, index })}
               />
             ))}
@@ -109,27 +138,22 @@ export default function ViewForms() {
         )}
       </div>
 
-      {/* Lightbox */}
       {lightbox && (
         <div className="lb-backdrop" onClick={() => setLightbox(null)}>
           <button className="lb-close" onClick={() => setLightbox(null)} aria-label="Close">✕</button>
-
           {lightbox.images.length > 1 && (
             <button className="lb-arrow lb-arrow--left"
               onClick={(e) => { e.stopPropagation(); setLightbox((l) => l && { ...l, index: (l.index - 1 + l.images.length) % l.images.length }); }}
             >‹</button>
           )}
-
           <div className="lb-img-wrap" onClick={(e) => e.stopPropagation()}>
             <img src={lightbox.images[lightbox.index]} alt="" className="lb-img" />
           </div>
-
           {lightbox.images.length > 1 && (
             <button className="lb-arrow lb-arrow--right"
               onClick={(e) => { e.stopPropagation(); setLightbox((l) => l && { ...l, index: (l.index + 1) % l.images.length }); }}
             >›</button>
           )}
-
           {lightbox.images.length > 1 && (
             <div className="lb-dots" onClick={(e) => e.stopPropagation()}>
               {lightbox.images.map((_, i) => (
@@ -138,7 +162,6 @@ export default function ViewForms() {
               ))}
             </div>
           )}
-
           {lightbox.images.length > 1 && (
             <div className="lb-counter">{lightbox.index + 1} / {lightbox.images.length}</div>
           )}
@@ -152,15 +175,17 @@ interface FormCardProps {
   index: number;
   data: Record<string, unknown>;
   showImages: boolean;
+  onDelete: () => void;
   onOpenLightbox: (images: string[], index: number) => void;
 }
 
-function FormCard({ index, data, showImages, onOpenLightbox }: FormCardProps) {
+function FormCard({ index, data, showImages, onDelete, onOpenLightbox }: FormCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const imageKeys = showImages && Array.isArray(data.imageKeys)
-    ? (data.imageKeys as string[]).filter(Boolean)
-    : [];
+    ? (data.imageKeys as string[]).filter(Boolean) : [];
   const images = imageKeys.map((k) => `${CLOUD_FRONT_URL}${k}`);
 
   const primaryKeys = ["name", "email", "title", "subject", "category", "description", "date", "createdAt", "timestamp"];
@@ -168,16 +193,23 @@ function FormCard({ index, data, showImages, onOpenLightbox }: FormCardProps) {
   const rest: [string, unknown][] = [];
 
   for (const [k, v] of Object.entries(data)) {
-    if (k === "imageKeys") continue;
+    if (k === "imageKeys" || k === "_id" || k === "__v") continue;
     if (primaryKeys.includes(k)) preview.push([k, v]);
     else rest.push([k, v]);
   }
 
   const allFields = [...preview, ...rest];
 
+  function handleConfirmDelete() {
+    setDeleting(true);
+    onDelete();
+    setDeleting(false);
+    setConfirmDelete(false);
+  }
+
   return (
-    <div className="form-card">
-      <div className="form-card-header" onClick={() => setExpanded((e) => !e)}>
+    <div className={`form-card ${deleting ? "form-card--deleting" : ""}`}>
+      <div className="form-card-header" onClick={() => !confirmDelete && setExpanded((e) => !e)}>
         <span className="form-card-index">#{index + 1}</span>
         <div className="form-card-preview">
           {preview.slice(0, 2).map(([k, v]) => (
@@ -190,12 +222,27 @@ function FormCard({ index, data, showImages, onOpenLightbox }: FormCardProps) {
         {images.length > 0 && (
           <span className="form-card-img-badge">{images.length} img{images.length > 1 ? "s" : ""}</span>
         )}
+
+        {/* Delete controls */}
+        <div className="form-card-delete-zone" onClick={(e) => e.stopPropagation()}>
+          {!confirmDelete ? (
+            <button className="fc-delete-btn" onClick={() => setConfirmDelete(true)} title="Delete" aria-label="Delete">
+              {deleting ? <span className="fc-spinner" /> : "✕"}
+            </button>
+          ) : (
+            <div className="fc-confirm">
+              <span className="fc-confirm-label">Delete?</span>
+              <button className="fc-confirm-yes" onClick={handleConfirmDelete}>Yes</button>
+              <button className="fc-confirm-no" onClick={() => setConfirmDelete(false)}>No</button>
+            </div>
+          )}
+        </div>
+
         <span className="form-card-toggle">{expanded ? "▲" : "▼"}</span>
       </div>
 
       {expanded && (
         <div className="form-card-body">
-          {/* Image gallery for env reports */}
           {images.length > 0 && (
             <div className="vf-gallery">
               {images.map((src, i) => (
@@ -206,7 +253,6 @@ function FormCard({ index, data, showImages, onOpenLightbox }: FormCardProps) {
               ))}
             </div>
           )}
-
           <table className="field-table">
             <tbody>
               {allFields.map(([k, v]) => (

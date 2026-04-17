@@ -42,16 +42,36 @@ export async function getStudentInterest(): Promise<unknown[]> {
   return res.json();
 }
 
+export async function deleteStudentInterest(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/student-interest/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+}
+
 export async function getOthersInterest(): Promise<unknown[]> {
   const res = await fetch(`${BASE}/others-interest`);
   if (!res.ok) throw new Error(`Failed to fetch others interest: ${res.statusText}`);
   return res.json();
 }
 
+export async function deleteOthersInterest(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/others-interest/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+}
+
 export async function getBugForms(): Promise<unknown[]> {
   const res = await fetch(`${BASE}/bug-form`);
   if (!res.ok) throw new Error(`Failed to fetch bug forms: ${res.statusText}`);
   return res.json();
+}
+
+export async function deleteBugForm(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/bug-form/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+}
+
+export async function deleteEnvReport(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/env-reports/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Delete failed (${res.status})`);
 }
 
 export interface Post {
