@@ -90,7 +90,7 @@ export async function deletePost(postID: string): Promise<void> {
 }
 
 export async function getLatestAq(): Promise<unknown[]> {
-  const res = await fetch(`${BASE}/latest-aq`);
+  const res = await fetch(`${BASE}/env-reports`);
   if (!res.ok) throw new Error(`Failed to fetch env reports: ${res.statusText}`);
   const data = await res.json();
   return Array.isArray(data) ? data : [data];

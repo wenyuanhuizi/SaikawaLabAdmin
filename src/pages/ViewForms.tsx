@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { getBugForms, getLatestAq, getOthersInterest, getStudentInterest } from "../api";
+import "./ViewForms.css";
+
+const CLOUD_FRONT_URL = "https://dwtzamkwegvv2.cloudfront.net/";
 
 type Tab = "student" | "others" | "bug" | "env";
 
@@ -21,11 +24,9 @@ const FETCHERS: Record<Tab, () => Promise<unknown[]>> = {
 export default function ViewForms() {
   const [tab, setTab] = useState<Tab>("student");
   const [states, setStates] = useState<Record<Tab, FetchState>>({
-    student: EMPTY,
-    others: EMPTY,
-    bug: EMPTY,
-    env: EMPTY,
+    student: EMPTY, others: EMPTY, bug: EMPTY, env: EMPTY,
   });
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   async function load(t: Tab) {
     setStates((prev) => ({ ...prev, [t]: { data: null, loading: true, error: null } }));
@@ -40,9 +41,18 @@ export default function ViewForms() {
     }
   }
 
+  useEffect(() => { load("student"); }, []);
+
   useEffect(() => {
-    load("student");
-  }, []);
+    if (!lightbox) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setLightbox(null);
+      if (e.key === "ArrowRight") setLightbox((l) => l && { ...l, index: (l.index + 1) % l.images.length });
+      if (e.key === "ArrowLeft") setLightbox((l) => l && { ...l, index: (l.index - 1 + l.images.length) % l.images.length });
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
 
   function switchTab(t: Tab) {
     setTab(t);
@@ -67,62 +77,98 @@ export default function ViewForms() {
 
       <div className="tabs">
         {tabs.map((t) => (
-          <button
-            key={t.key}
-            className={`tab ${tab === t.key ? "tab-active" : ""}`}
-            onClick={() => switchTab(t.key)}
-          >
+          <button key={t.key} className={`tab ${tab === t.key ? "tab-active" : ""}`} onClick={() => switchTab(t.key)}>
             {t.label}
           </button>
         ))}
-        <button
-          className="tab tab-refresh"
-          onClick={() => load(tab)}
-          disabled={current.loading}
-          title="Refresh"
-        >
+        <button className="tab tab-refresh" onClick={() => load(tab)} disabled={current.loading} title="Refresh">
           {current.loading ? "⟳" : "↻"} Refresh
         </button>
       </div>
 
       <div className="card">
         {current.loading && (
-          <div className="state-message">
-            <div className="spinner" />
-            <p>Loading…</p>
-          </div>
+          <div className="state-message"><div className="spinner" /><p>Loading…</p></div>
         )}
-
-        {current.error && (
-          <div className="alert alert-error">{current.error}</div>
-        )}
-
+        {current.error && <div className="alert alert-error">{current.error}</div>}
         {current.data && current.data.length === 0 && (
-          <div className="state-message">
-            <p className="empty-text">No submissions yet.</p>
-          </div>
+          <div className="state-message"><p className="empty-text">No submissions yet.</p></div>
         )}
-
         {current.data && current.data.length > 0 && (
           <div className="form-list">
             {current.data.map((entry, i) => (
-              <FormCard key={i} index={i} data={entry} />
+              <FormCard
+                key={i}
+                index={i}
+                data={entry}
+                showImages={tab === "env"}
+                onOpenLightbox={(images, index) => setLightbox({ images, index })}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="lb-backdrop" onClick={() => setLightbox(null)}>
+          <button className="lb-close" onClick={() => setLightbox(null)} aria-label="Close">✕</button>
+
+          {lightbox.images.length > 1 && (
+            <button className="lb-arrow lb-arrow--left"
+              onClick={(e) => { e.stopPropagation(); setLightbox((l) => l && { ...l, index: (l.index - 1 + l.images.length) % l.images.length }); }}
+            >‹</button>
+          )}
+
+          <div className="lb-img-wrap" onClick={(e) => e.stopPropagation()}>
+            <img src={lightbox.images[lightbox.index]} alt="" className="lb-img" />
+          </div>
+
+          {lightbox.images.length > 1 && (
+            <button className="lb-arrow lb-arrow--right"
+              onClick={(e) => { e.stopPropagation(); setLightbox((l) => l && { ...l, index: (l.index + 1) % l.images.length }); }}
+            >›</button>
+          )}
+
+          {lightbox.images.length > 1 && (
+            <div className="lb-dots" onClick={(e) => e.stopPropagation()}>
+              {lightbox.images.map((_, i) => (
+                <button key={i} className={`lb-dot ${i === lightbox.index ? "lb-dot--active" : ""}`}
+                  onClick={() => setLightbox((l) => l && { ...l, index: i })} />
+              ))}
+            </div>
+          )}
+
+          {lightbox.images.length > 1 && (
+            <div className="lb-counter">{lightbox.index + 1} / {lightbox.images.length}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function FormCard({ index, data }: { index: number; data: Record<string, unknown> }) {
+interface FormCardProps {
+  index: number;
+  data: Record<string, unknown>;
+  showImages: boolean;
+  onOpenLightbox: (images: string[], index: number) => void;
+}
+
+function FormCard({ index, data, showImages, onOpenLightbox }: FormCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const primaryKeys = ["name", "email", "title", "subject", "message", "description", "createdAt", "timestamp", "date"];
+  const imageKeys = showImages && Array.isArray(data.imageKeys)
+    ? (data.imageKeys as string[]).filter(Boolean)
+    : [];
+  const images = imageKeys.map((k) => `${CLOUD_FRONT_URL}${k}`);
+
+  const primaryKeys = ["name", "email", "title", "subject", "category", "description", "date", "createdAt", "timestamp"];
   const preview: [string, unknown][] = [];
   const rest: [string, unknown][] = [];
 
   for (const [k, v] of Object.entries(data)) {
+    if (k === "imageKeys") continue;
     if (primaryKeys.includes(k)) preview.push([k, v]);
     else rest.push([k, v]);
   }
@@ -141,11 +187,26 @@ function FormCard({ index, data }: { index: number; data: Record<string, unknown
             </span>
           ))}
         </div>
+        {images.length > 0 && (
+          <span className="form-card-img-badge">{images.length} img{images.length > 1 ? "s" : ""}</span>
+        )}
         <span className="form-card-toggle">{expanded ? "▲" : "▼"}</span>
       </div>
 
       {expanded && (
         <div className="form-card-body">
+          {/* Image gallery for env reports */}
+          {images.length > 0 && (
+            <div className="vf-gallery">
+              {images.map((src, i) => (
+                <div key={i} className="vf-gallery-thumb" onClick={() => onOpenLightbox(images, i)}>
+                  <img src={src} alt={`image ${i + 1}`} />
+                  <div className="vf-gallery-zoom">⤢</div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <table className="field-table">
             <tbody>
               {allFields.map(([k, v]) => (
