@@ -15,16 +15,15 @@ export default function App() {
               <img src={logoImg} alt="Saikawa Lab" className="logo-img" />
               <span className="logo-text">Saikawa Lab Admin</span>
             </span>
-            <div className="header-divider" />
             <nav className="nav">
               <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
                 Create Post
               </NavLink>
-              <NavLink to="/forms" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
-                View Forms
-              </NavLink>
               <NavLink to="/posts" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
                 Manage Posts
+              </NavLink>
+              <NavLink to="/forms" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+                View Forms
               </NavLink>
             </nav>
           </div>
