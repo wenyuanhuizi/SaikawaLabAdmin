@@ -1,4 +1,4 @@
-import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import CreatePost from "./pages/CreatePost";
 import ViewForms from "./pages/ViewForms";
 import ManagePosts from "./pages/ManagePosts";
@@ -7,7 +7,7 @@ import "./App.css";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/SaikawaLabAdmin">
       <div className="app">
         <header className="header">
           <div className="header-inner">
@@ -16,13 +16,13 @@ export default function App() {
               <span className="logo-text">Saikawa Lab Admin</span>
             </span>
             <nav className="nav">
-              <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              <NavLink to="/create-post" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
                 Create Post
               </NavLink>
-              <NavLink to="/posts" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              <NavLink to="/manage-posts" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
                 Manage Posts
               </NavLink>
-              <NavLink to="/forms" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              <NavLink to="/view-forms" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
                 View Forms
               </NavLink>
             </nav>
@@ -30,9 +30,10 @@ export default function App() {
         </header>
         <main className="main">
           <Routes>
-            <Route path="/" element={<CreatePost />} />
-            <Route path="/forms" element={<ViewForms />} />
-            <Route path="/posts" element={<ManagePosts />} />
+            <Route path="/" element={<Navigate to="/create-post" replace />} />
+            <Route path="/create-post" element={<CreatePost />} />
+            <Route path="/manage-posts" element={<ManagePosts />} />
+            <Route path="/view-forms" element={<ViewForms />} />
           </Routes>
         </main>
       </div>

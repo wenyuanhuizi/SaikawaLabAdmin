@@ -3,14 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <script>
-      // Redirect SPA routes back to index with the path encoded as a query param
-      var l = window.location;
-      l.replace(
-        l.protocol + "//" + l.hostname + (l.port ? ":" + l.port : "") +
-        l.pathname.split("/").slice(0, 2).join("/") +
-        "/?p=" + encodeURIComponent(l.pathname.slice(1) + l.search) +
-        l.hash
-      );
+      // Redirect SPA deep links back to index, preserving the path after the repo name.
+      // e.g. /SaikawaLabAdmin/create-post  →  /SaikawaLabAdmin/?p=%2Fcreate-post
+      (function () {
+        var base = "/SaikawaLabAdmin";
+        var path = window.location.pathname.slice(base.length) || "/";
+        var search = window.location.search;
+        var hash = window.location.hash;
+        window.location.replace(
+          window.location.origin + base +
+          "/?p=" + encodeURIComponent(path + search) + hash
+        );
+      })();
     </script>
   </head>
 </html>
