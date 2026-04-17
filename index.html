@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>saikawalabadmin</title>
+    <title>Saikawa Lab Admin</title>
+    <script>
+      // Restore path redirected by 404.html
+      (function () {
+        var p = window.location.search.slice(1).split("&").find(function(s){ return s.startsWith("p="); });
+        if (p) {
+          var path = "/" + decodeURIComponent(p.slice(2));
+          window.history.replaceState(null, null, path + window.location.hash);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
