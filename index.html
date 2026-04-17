@@ -7,15 +7,20 @@
     <title>Saikawa Lab Admin</title>
     <script>
       // Restore path redirected by 404.html
+      // 404.html encodes only the part AFTER /SaikawaLabAdmin, so restore it there.
       (function () {
-        var p = window.location.search.slice(1).split("&").find(function(s){ return s.startsWith("p="); });
+        var base = "/SaikawaLabAdmin";
+        var params = new URLSearchParams(window.location.search);
+        var p = params.get("p");
         if (p) {
-          var path = "/" + decodeURIComponent(p.slice(2));
-          window.history.replaceState(null, null, path + window.location.hash);
+          window.history.replaceState(
+            null, null,
+            base + p + window.location.hash
+          );
         }
       })();
     </script>
-    <script type="module" crossorigin src="/SaikawaLabAdmin/assets/index-Dy-fTAWu.js"></script>
+    <script type="module" crossorigin src="/SaikawaLabAdmin/assets/index-Cz7tMXEH.js"></script>
     <link rel="stylesheet" crossorigin href="/SaikawaLabAdmin/assets/index-CZEJfK5R.css">
   </head>
   <body>
