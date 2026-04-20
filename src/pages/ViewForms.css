@@ -182,3 +182,19 @@
   left: 50%; transform: translateX(-50%);
   color: rgba(255,255,255,0.6); font-size: 13px;
 }
+
+.vf-download-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 13.5px;
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+.vf-download-link::before { content: "↓"; font-size: 12px; }
+.vf-download-link:hover { background: var(--primary); color: #fff; }

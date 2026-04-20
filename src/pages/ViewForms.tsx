@@ -124,12 +124,12 @@ export default function ViewForms() {
         )}
         {current.data && current.data.length > 0 && (
           <div className="form-list">
-            {current.data.map((entry, i) => (
+            {sortByDateDesc(current.data).map((entry, i) => (
               <FormCard
                 key={(entry._id as string) ?? i}
-                index={i}
                 data={entry}
                 showImages={tab === "env"}
+                fileFields={tab === "student" ? ["resume", "transcript"] : []}
                 onDelete={() => handleDelete(tab, entry._id as string)}
                 onOpenLightbox={(images, index) => setLightbox({ images, index })}
               />
@@ -172,14 +172,14 @@ export default function ViewForms() {
 }
 
 interface FormCardProps {
-  index: number;
   data: Record<string, unknown>;
   showImages: boolean;
+  fileFields?: string[];
   onDelete: () => void;
   onOpenLightbox: (images: string[], index: number) => void;
 }
 
-function FormCard({ index, data, showImages, onDelete, onOpenLightbox }: FormCardProps) {
+function FormCard({ data, showImages, fileFields = [], onDelete, onOpenLightbox }: FormCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -210,7 +210,7 @@ function FormCard({ index, data, showImages, onDelete, onOpenLightbox }: FormCar
   return (
     <div className={`form-card ${deleting ? "form-card--deleting" : ""}`}>
       <div className="form-card-header" onClick={() => !confirmDelete && setExpanded((e) => !e)}>
-        <span className="form-card-index">#{index + 1}</span>
+        <span className="form-card-index">{formatEntryDate(data)}</span>
         <div className="form-card-preview">
           {preview.slice(0, 2).map(([k, v]) => (
             <span key={k} className="form-card-field">
@@ -258,7 +258,21 @@ function FormCard({ index, data, showImages, onDelete, onOpenLightbox }: FormCar
               {allFields.map(([k, v]) => (
                 <tr key={k}>
                   <td className="field-key-cell">{formatKey(k)}</td>
-                  <td className="field-val-cell">{formatValue(v)}</td>
+                  <td className="field-val-cell">
+                    {fileFields.includes(k) && typeof v === "string" && v ? (
+                      <a
+                        href={`${CLOUD_FRONT_URL}${v}`}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className="vf-download-link"
+                      >
+                        Download {formatKey(k)}
+                      </a>
+                    ) : (
+                      formatValue(v)
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -277,4 +291,25 @@ function formatValue(v: unknown): string {
   if (v === null || v === undefined) return "—";
   if (typeof v === "object") return JSON.stringify(v, null, 2);
   return String(v);
+}
+
+function getEntryDate(entry: Record<string, unknown>): Date | null {
+  const raw = entry.createdAt ?? entry.timestamp ?? entry.date;
+  if (!raw) return null;
+  const d = new Date(raw as string | number);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatEntryDate(entry: Record<string, unknown>): string {
+  const d = getEntryDate(entry);
+  if (!d) return "—";
+  return d.toISOString().slice(0, 10);
+}
+
+function sortByDateDesc(data: Record<string, unknown>[]): Record<string, unknown>[] {
+  return [...data].sort((a, b) => {
+    const da = getEntryDate(a)?.getTime() ?? 0;
+    const db = getEntryDate(b)?.getTime() ?? 0;
+    return db - da;
+  });
 }
