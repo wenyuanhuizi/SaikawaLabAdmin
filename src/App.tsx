@@ -2,11 +2,13 @@ import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router-do
 import CreatePost from "./pages/CreatePost";
 import ViewForms from "./pages/ViewForms";
 import ManagePosts from "./pages/ManagePosts";
+import PasswordGate from "./components/PasswordGate";
 import logoImg from "./assets/logo.png";
 import "./App.css";
 
 export default function App() {
   return (
+    <PasswordGate>
     <BrowserRouter basename="/SaikawaLabAdmin">
       <div className="app">
         <header className="header">
@@ -38,5 +40,6 @@ export default function App() {
         </main>
       </div>
     </BrowserRouter>
+    </PasswordGate>
   );
 }
